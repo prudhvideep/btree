@@ -62,6 +62,36 @@ void insert_child_at(btree *&node, btree *&child, int idx) {
   node->children[idx] = child;
 }
 
+// Move keys from the left node to the right node
+void move_keys(btree *left, btree *right, int start) {
+  int idx = 0;
+
+  for (int i = start; i < left->num_keys; i++) {
+    right->keys[idx++] = left->keys[i];
+    right->num_keys++;
+  }
+}
+
+// Move children from the left node to the right node
+void move_children(btree *left, btree *right, int start_idx,
+                   int total_children) {
+
+  int idx = 0;
+  for (int i = start_idx; i < total_children; i++) {
+    right->children[idx++] = left->children[i];
+    left->children[i] = nullptr;
+  }
+}
+
+// Clear keys in a node
+void clear_keys(btree *node, int from_idx) {
+  for (int i = from_idx; i < node->num_keys; i++) {
+    node->keys[i] = 0;
+  }
+
+  node->num_keys = from_idx;
+}
+
 // split the leaf node
 void split_leaf(btree *&leaf, btree *&parent) {
   // This means the leaf node is the root
@@ -88,21 +118,11 @@ void split_leaf(btree *&leaf, btree *&parent) {
   }
   insert_child_at(parent, right, idx_parent + 1);
 
-  // Copy keys from left node to right node
-  int idx = 0;
-  for (int i = mid + 1; i < left->num_keys; i++) {
-    right->keys[idx++] = left->keys[i];
-    right->num_keys++;
-  }
-
-  for (int i = mid; i < left->num_keys; i++) {
-    left->keys[i] = 0;
-  }
-
-  left->num_keys = mid;
+  move_keys(left, right, mid + 1);
+  clear_keys(left, mid);
 }
 
-// split the node
+// split an internal node
 void split_internal(btree *&node, btree *&parent) {
   bool is_root = (parent == nullptr);
   btree *left = node;
@@ -130,30 +150,12 @@ void split_internal(btree *&node, btree *&parent) {
 
   int no_of_keys = left->num_keys;
   int no_of_children = no_of_keys + 1;
-  // Copy keys from left node to right node
-  int idx = 0;
-  for (int i = mid + 1; i < left->num_keys; i++) {
-    right->keys[idx++] = left->keys[i];
-    right->num_keys++;
-  }
 
-  for (int i = mid; i < left->num_keys; i++) {
-    left->keys[i] = 0;
-  }
-
-  left->num_keys = mid;
+  move_keys(left, right, mid + 1);
+  clear_keys(node, mid);
 
   int mid_child = no_of_children / 2;
-  // Copy children from left node to right node
-  idx = 0;
-  for (int i = mid_child; i < no_of_children; i++) {
-
-    right->children[idx++] = left->children[i];
-  }
-
-  for (int i = mid_child; i < no_of_children; i++) {
-    left->children[i] = nullptr;
-  }
+  move_children(left, right, mid_child, no_of_children);
 }
 
 // Handles main recursive insert logic
@@ -187,9 +189,9 @@ void insert(btree *&root, int key) {
     root = init();
   }
 
-  btree *treeParent = nullptr;
+  btree *tree_parent = nullptr;
 
-  insert_helper(root, key, treeParent);
+  insert_helper(root, key, tree_parent);
 }
 
 void remove(btree *&root, int key) {
@@ -238,17 +240,3 @@ int count_keys(btree *&root) {
 
   return count;
 }
-
-// int main() {
-//   int vals[] = {10, 30};
-//   btree *root = build_node(2, vals);
-//   root->num_keys = 2;
-
-//   insert(root, 42);
-
-//   print_tree(root);
-
-//   insert(root,7);
-
-//   print_tree(root);
-// }

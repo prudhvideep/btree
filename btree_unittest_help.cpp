@@ -9,33 +9,29 @@
 #include "btree.h"
 #include <climits>
 #include <cmath>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-btree *init_node() {
-  btree *ret = new btree;
-  ret->num_keys = 0;
-  ret->is_leaf = true;
-  for (int i = 0; i <= BTREE_ORDER; i++) {
-    ret->children[i] = NULL;
-  }
+shared_ptr<btree> init_node() {
+  shared_ptr<btree> ret = make_shared<btree>();
   return ret;
 }
 
-btree *build_broken() {
+shared_ptr<btree> build_broken() {
 
   int vals[] = {10, 20};
-  btree *root = build_node(2, vals);
+  shared_ptr<btree> root = build_node(2, vals);
   // now we need three children
   int vals2[] = {2, 8};
-  btree *left = build_node(2, vals2);
+  shared_ptr<btree> left = build_node(2, vals2);
   int vals3[] = {13, 17};
-  btree *mid = build_node(2, vals3);
+  shared_ptr<btree> mid = build_node(2, vals3);
   int vals4[] = {28};
-  btree *right = build_node(1, vals4); // right node is under capacity!
+  shared_ptr<btree> right = build_node(1, vals4); // right node is under capacity!
   root->is_leaf = false;
   root->children[0] = left;
   root->children[1] = mid;
@@ -43,23 +39,23 @@ btree *build_broken() {
   return root;
 }
 
-btree *build_semifull() {
+shared_ptr<btree> build_semifull() {
   int vals[] = {10, 30};
-  btree *root = build_node(2, vals);
+  shared_ptr<btree> root = build_node(2, vals);
   root->num_keys = 2;
   return root;
 }
 
-btree *build_empty() { return init_node(); }
+shared_ptr<btree> build_empty() { return init_node(); }
 
-btree *build_full_leaf_root() {
+shared_ptr<btree> build_full_leaf_root() {
   int vals[] = {10, 20, 30, 40};
-  btree *root = build_node(4, vals);
+  shared_ptr<btree> root = build_node(4, vals);
   root->num_keys = 4;
   return root;
 }
 
-btree *build_small() {
+shared_ptr<btree> build_small() {
   //       root
   //      10   20
   //    /    |    \/
@@ -67,14 +63,14 @@ btree *build_small() {
   // left   mid    right
 
   int vals[] = {10, 20};
-  btree *root = build_node(2, vals);
+  shared_ptr<btree> root = build_node(2, vals);
   // now we need three children
   int vals2[] = {2, 8};
-  btree *left = build_node(2, vals2);
+  shared_ptr<btree> left = build_node(2, vals2);
   int vals3[] = {13, 17};
-  btree *mid = build_node(2, vals3);
+  shared_ptr<btree> mid = build_node(2, vals3);
   int vals4[] = {24, 28};
-  btree *right = build_node(2, vals4);
+  shared_ptr<btree> right = build_node(2, vals4);
   root->is_leaf = false;
   root->children[0] = left;
   root->children[1] = mid;
@@ -82,21 +78,21 @@ btree *build_small() {
   return root;
 }
 
-btree *build_two_tier() {
+shared_ptr<btree> build_two_tier() {
   //        [10,    20,   30]
   //       /     |      \       \/
   //     /       |        \       \/
   // [5,8] [13,15,17,19] [23,27] [33,35,38]
   int valsRoot[] = {10, 20, 30};
-  btree *root = build_node(3, valsRoot);
+  shared_ptr<btree> root = build_node(3, valsRoot);
   int vals1[] = {5, 8};
-  btree *ch1 = build_node(2, vals1);
+  shared_ptr<btree> ch1 = build_node(2, vals1);
   int vals2[] = {13, 15, 17, 19};
-  btree *ch2 = build_node(4, vals2);
+  shared_ptr<btree> ch2 = build_node(4, vals2);
   int vals3[] = {23, 27};
-  btree *ch3 = build_node(2, vals3);
+  shared_ptr<btree> ch3 = build_node(2, vals3);
   int vals4[] = {33, 35, 38};
-  btree *ch4 = build_node(3, vals4);
+  shared_ptr<btree> ch4 = build_node(3, vals4);
   root->children[0] = ch1;
   root->children[1] = ch2;
   root->children[2] = ch3;
@@ -106,28 +102,28 @@ btree *build_two_tier() {
   return root;
 }
 
-btree *build_full_two_tier() {
+shared_ptr<btree> build_full_two_tier() {
   //     [4,    7,        13,        20]
   //     /   |       |           |      \/
   //    /    |       |           |       \/
   // [1,3] [5,6] [8,11,12] [14,16,17,18] [23,24,25,26]
   int valsRoot[] = {4, 7, 13, 20};
-  btree *root = build_node(4, valsRoot);
+  shared_ptr<btree> root = build_node(4, valsRoot);
 
   int vals_ch0[] = {1, 3};
-  btree *ch0 = build_node(2, vals_ch0);
+  shared_ptr<btree> ch0 = build_node(2, vals_ch0);
 
   int vals_ch1[] = {5, 6};
-  btree *ch1 = build_node(2, vals_ch1);
+  shared_ptr<btree> ch1 = build_node(2, vals_ch1);
 
   int vals_ch2[] = {8, 11, 12};
-  btree *ch2 = build_node(3, vals_ch2);
+  shared_ptr<btree> ch2 = build_node(3, vals_ch2);
 
   int vals_ch3[] = {14, 16, 17, 18};
-  btree *ch3 = build_node(4, vals_ch3);
+  shared_ptr<btree> ch3 = build_node(4, vals_ch3);
 
   int vals_ch4[] = {23, 24, 25, 26};
-  btree *ch4 = build_node(4, vals_ch4);
+  shared_ptr<btree> ch4 = build_node(4, vals_ch4);
 
   root->children[0] = ch0;
   root->children[1] = ch1;
@@ -139,15 +135,15 @@ btree *build_full_two_tier() {
   return root;
 }
 
-btree *build_thin_three_tier() {
+shared_ptr<btree> build_thin_three_tier() {
   int valsRoot[] = {13};
-  btree *root = build_node(1, valsRoot);
+  shared_ptr<btree> root = build_node(1, valsRoot);
 
   int vals_ch0[] = {4, 7};
-  btree *ch0 = build_node(2, vals_ch0);
+  shared_ptr<btree> ch0 = build_node(2, vals_ch0);
 
   int vals_ch1[] = {17, 24};
-  btree *ch1 = build_node(2, vals_ch1);
+  shared_ptr<btree> ch1 = build_node(2, vals_ch1);
 
   root->is_leaf = false;
   root->children[0] = ch0;
@@ -156,26 +152,26 @@ btree *build_thin_three_tier() {
   ch1->is_leaf = false;
 
   int leaf_ch0[] = {1, 3};
-  btree *l0 = build_node(2, leaf_ch0);
+  shared_ptr<btree> l0 = build_node(2, leaf_ch0);
 
   int leaf_ch1[] = {5, 6};
-  btree *l1 = build_node(2, leaf_ch1);
+  shared_ptr<btree> l1 = build_node(2, leaf_ch1);
 
   int leaf_ch2[] = {11, 12};
-  btree *l2 = build_node(2, leaf_ch2);
+  shared_ptr<btree> l2 = build_node(2, leaf_ch2);
 
   ch0->children[0] = l0;
   ch0->children[1] = l1;
   ch0->children[2] = l2;
 
   int leaf_r0[] = {14, 16};
-  btree *r0 = build_node(2, leaf_r0);
+  shared_ptr<btree> r0 = build_node(2, leaf_r0);
 
   int leaf_r1[] = {19, 23};
-  btree *r1 = build_node(2, leaf_r1);
+  shared_ptr<btree> r1 = build_node(2, leaf_r1);
 
   int leaf_r2[] = {25, 26};
-  btree *r2 = build_node(2, leaf_r2);
+  shared_ptr<btree> r2 = build_node(2, leaf_r2);
 
   ch1->children[0] = r0;
   ch1->children[1] = r1;
@@ -184,8 +180,8 @@ btree *build_thin_three_tier() {
   return root;
 }
 
-btree *build_node(int size, int *keys) {
-  btree *node = init_node();
+shared_ptr<btree> build_node(int size, int *keys) {
+  shared_ptr<btree> node = init_node();
   node->num_keys = size;
   for (int i = 0; i < node->num_keys; i++) {
     node->keys[i] = keys[i];
@@ -193,7 +189,7 @@ btree *build_node(int size, int *keys) {
   return node;
 }
 
-string get_id_for_dot(btree *&node) {
+string get_id_for_dot(shared_ptr<btree> &node) {
   stringstream ss;
   ss << node; // address in memory
   string as_addr = ss.str();
@@ -201,7 +197,7 @@ string get_id_for_dot(btree *&node) {
   return as_addr;
 }
 
-string get_label_for_dot(btree *&node) {
+string get_label_for_dot(shared_ptr<btree> &node) {
   stringstream ss;
   for (int i = 0; i < node->num_keys; i++) {
     ss << "" << node->keys[i];
@@ -212,12 +208,12 @@ string get_label_for_dot(btree *&node) {
   return ss.str();
 }
 
-void print_dot_label(btree *&node) {
+void print_dot_label(shared_ptr<btree> &node) {
   cout << "    " << get_id_for_dot(node) << " [label=\""
        << get_label_for_dot(node) << "\"];" << endl;
 }
 
-void print_graphviz_dotfile(btree *&node, int depth) {
+void print_graphviz_dotfile(shared_ptr<btree> &node, int depth) {
   string spaces = "    ";
   if (depth == 0) {
     print_dot_label(node);
@@ -246,23 +242,22 @@ void print_graphviz_dotfile(btree *&node, int depth) {
 // view it.
 //
 // there is a web-based viewer at http://www.webgraphviz.com/
-void print_tree(btree *&root) {
+void print_tree(shared_ptr<btree> &root) {
   cout << "graph btree {" << endl;
   int depth = 0;
   print_graphviz_dotfile(root, depth);
   cout << "}" << endl;
 }
 
-bool check_tree(btree *&root) {
+bool check_tree(shared_ptr<btree> &root) {
   bool ret = false;
-  invariants *invars = new invariants;
+  shared_ptr<invariants> invars = make_shared<invariants>();
   check_invariants(invars, root, true);
   ret = !any_false(invars);
-  delete invars;
   return ret;
 }
 
-void check_invariants(invariants *&invars, btree *&node, bool is_root) {
+void check_invariants(shared_ptr<invariants> &invars, shared_ptr<btree> &node, bool is_root) {
 
   if (is_root && node == NULL) {
     invars->ascending = true;
@@ -328,7 +323,7 @@ void check_invariants(invariants *&invars, btree *&node, bool is_root) {
   }
 }
 
-void check_leaf_height(btree *&node, vector<int> &depth, int current_depth) {
+void check_leaf_height(shared_ptr<btree> &node, vector<int> &depth, int current_depth) {
   if (node->is_leaf) {
     depth.push_back(current_depth);
   } else {
@@ -338,7 +333,7 @@ void check_leaf_height(btree *&node, vector<int> &depth, int current_depth) {
   }
 }
 
-bool check_height(btree *&node, int &result_height) {
+bool check_height(shared_ptr<btree> &node, int &result_height) {
   vector<int> depth;
   check_leaf_height(node, depth, 0);
   int val = 0;
@@ -359,7 +354,7 @@ bool check_height(btree *&node, int &result_height) {
   return same;
 }
 
-void check_size(btree *&node, int &result_nodes, int &result_keys,
+void check_size(shared_ptr<btree> &node, int &result_nodes, int &result_keys,
                 bool is_root) {
   if (is_root) {
     result_nodes = 0;
@@ -377,7 +372,7 @@ void check_size(btree *&node, int &result_nodes, int &result_keys,
   }
 }
 
-bool check_node_key_range(btree *&node, int low, int high, bool recurse) {
+bool check_node_key_range(shared_ptr<btree> &node, int low, int high, bool recurse) {
 
   for (int i = 0; i < node->num_keys; i++) {
     if (node->keys[i] <= low ||  // key is out of low range
@@ -404,7 +399,7 @@ bool check_node_key_range(btree *&node, int low, int high, bool recurse) {
   return true;
 }
 
-bool any_false(invariants *&invars) {
+bool any_false(shared_ptr<invariants> &invars) {
   bool wrong = invars->ascending && invars->not_fat && invars->not_starving &&
                invars->good_root && invars->height_match &&
                invars->child_key_order;
@@ -412,7 +407,7 @@ bool any_false(invariants *&invars) {
   return !wrong;
 }
 
-bool private_contains(btree *&node, int key) {
+bool private_contains(shared_ptr<btree> &node, int key) {
   if (node == NULL) {
     return false;
   }
@@ -430,7 +425,7 @@ bool private_contains(btree *&node, int key) {
   return false;
 }
 
-bool private_search_all(btree *&node, int key) {
+bool private_search_all(shared_ptr<btree> &node, int key) {
   if (private_contains(node, key)) {
     return true; // found it here!
   }

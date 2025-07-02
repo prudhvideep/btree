@@ -2,6 +2,7 @@
 // btree_test.cpp
 //
 
+#include <memory>
 #define CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_NO_POSIX_SIGNALS
 
@@ -20,7 +21,7 @@ using namespace std;
 TEST_CASE("B-Tree: Sanity Check", "[sanity]") {
   // run this one with the following command line:
   // ./btree_test "[sanity]"
-  btree *small = build_small();
+  shared_ptr<btree> small = build_small();
   cout << "print_tree writes something like: \"graph btree{ ... }\" to stdout."
        << endl;
   cout << "use webgraphviz.com to turn that into diagrams of your tree." << endl
@@ -32,47 +33,47 @@ TEST_CASE("B-Tree: Sanity Check", "[sanity]") {
   REQUIRE(private_contains(small, 13));
   REQUIRE_FALSE(private_contains(small, 14));
 
-  btree *broken = build_broken();    // invariant should fail
+  shared_ptr<btree> broken = build_broken();    // invariant should fail
   REQUIRE_FALSE(check_tree(broken)); // be sure we catch that
 }
 
 TEST_CASE("B-Tree: Report number of nodes", "[count nodes]") {
-  btree *empty = build_empty();
+  shared_ptr<btree> empty = build_empty();
   REQUIRE(count_nodes(empty) == 1); // not zero, since there's a root node
 
-  btree *small = build_small();
+  shared_ptr<btree> small = build_small();
   REQUIRE(count_nodes(small) == 4);
 
-  btree *two_thin = build_two_tier();
+  shared_ptr<btree> two_thin = build_two_tier();
   REQUIRE(count_nodes(two_thin) == 5);
 
-  btree *two_full = build_full_two_tier();
+  shared_ptr<btree> two_full = build_full_two_tier();
   REQUIRE(count_nodes(two_full) == 6);
 
-  btree *thrice = build_thin_three_tier();
+  shared_ptr<btree> thrice = build_thin_three_tier();
   REQUIRE(count_nodes(thrice) == 9);
 }
 
 TEST_CASE("B-Tree: Report number of keys", "[count keys]") {
-  btree *empty = build_empty();
+  shared_ptr<btree> empty = build_empty();
   REQUIRE(count_keys(empty) == 0);
 
-  btree *small = build_small();
+  shared_ptr<btree> small = build_small();
   REQUIRE(count_keys(small) == 8);
 
-  btree *two_thin = build_two_tier();
+  shared_ptr<btree> two_thin = build_two_tier();
   REQUIRE(count_keys(two_thin) == 14);
 
-  btree *two_full = build_full_two_tier();
+  shared_ptr<btree> two_full = build_full_two_tier();
   REQUIRE(count_keys(two_full) == 19);
 
-  btree *thrice = build_thin_three_tier();
+  shared_ptr<btree> thrice = build_thin_three_tier();
   REQUIRE(count_keys(thrice) == 17);
 }
 
 TEST_CASE("B-Tree: Find present key in leaf", "[find present leaf]") {
-  btree *small = build_small();
-  btree *node;
+  shared_ptr<btree> small = build_small();
+  shared_ptr<btree> node;
 
   node = find(small, 17);
   REQUIRE(node == small->children[1]);
@@ -85,8 +86,8 @@ TEST_CASE("B-Tree: Find present key in leaf", "[find present leaf]") {
 }
 
 TEST_CASE("B-Tree: Find present key in internal node", "[find present intnl]") {
-  btree *thrice = build_thin_three_tier();
-  btree *node;
+  shared_ptr<btree> thrice = build_thin_three_tier();
+  shared_ptr<btree> node;
 
   node = find(thrice, 7);
   REQUIRE(node == thrice->children[0]);
@@ -96,8 +97,8 @@ TEST_CASE("B-Tree: Find present key in internal node", "[find present intnl]") {
 }
 
 TEST_CASE("B-Tree: Find present key in root", "[find present root]") {
-  btree *small = build_small();
-  btree *node;
+  shared_ptr<btree> small = build_small();
+  shared_ptr<btree> node;
 
   node = find(small, 10);
   REQUIRE(node == small);
@@ -107,8 +108,8 @@ TEST_CASE("B-Tree: Find present key in root", "[find present root]") {
 }
 
 TEST_CASE("B-Tree: Find not present key", "[find not present]") {
-  btree *small = build_small();
-  btree *node;
+  shared_ptr<btree> small = build_small();
+  shared_ptr<btree> node;
 
   node = find(small, 6);
   REQUIRE(node == small->children[0]);
@@ -122,14 +123,14 @@ TEST_CASE("B-Tree: Find not present key", "[find not present]") {
 }
 
 TEST_CASE("B-Tree: Insert key into empty root", "[ins root empty]") {
-  btree *empty = build_empty();
+  shared_ptr<btree> empty = build_empty();
   insert(empty, 42);
   REQUIRE(check_tree(empty));
   REQUIRE(private_contains(empty, 42));
 }
 
 TEST_CASE("B-Tree: Insert key into semifull root", "[ins root semifull]") {
-  btree *semi = build_semifull();
+  shared_ptr<btree> semi = build_semifull();
   insert(semi, 42);
   REQUIRE(check_tree(semi));
   REQUIRE(private_contains(semi, 10));
@@ -145,7 +146,7 @@ TEST_CASE("B-Tree: Insert key into semifull root", "[ins root semifull]") {
 }
 
 TEST_CASE("B-Tree: Insert key into full root", "[ins root full]") {
-  btree *full = build_full_leaf_root();
+  shared_ptr<btree> full = build_full_leaf_root();
   insert(full, 15);
   REQUIRE(check_tree(full));
 
@@ -159,7 +160,7 @@ TEST_CASE("B-Tree: Insert key into full root", "[ins root full]") {
 
 TEST_CASE("B-Tree: Insert key into semifull leaf node", "[ins leaf semifull]") {
   // get a tree with semifull leaf
-  btree *semi = build_two_tier();
+  shared_ptr<btree> semi = build_two_tier();
   int height = 0;
   bool leaves_ok = check_height(semi, height);
   REQUIRE(height == 1);
@@ -193,7 +194,7 @@ TEST_CASE("B-Tree: Insert key into semifull leaf node", "[ins leaf semifull]") {
 }
 
 TEST_CASE("B-Tree: Insert key into full leaf node", "[ins leaf full]") {
-  btree *semi = build_two_tier();
+  shared_ptr<btree> semi = build_two_tier();
   int height = 0;
   bool leaves_ok = check_height(semi, height);
   REQUIRE(height == 1);

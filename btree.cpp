@@ -1,30 +1,21 @@
 // btree.cpp
 #include "btree.h"
 #include "btree_unittest_help.h"
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <memory>
 
 using namespace std;
 
 // Initializes a btree node
-btree *init() {
-  btree *node = new btree;
-  node->num_keys = 0;
-  node->is_leaf = true;
-
-  for (int i = 0; i < BTREE_ORDER; i++) {
-    node->keys[i] = 0;
-  }
-
-  for (int i = 0; i < BTREE_ORDER + 1; i++) {
-    node->children[i] = nullptr;
-  }
-
+shared_ptr<btree> init() {
+  shared_ptr<btree> node = std::make_shared<btree>();
   return node;
 }
 
 // Returns the index where a key can be inserted in a node
-int find_idx(int *keys, int l, int h, int target) {
+int find_idx(array<int, BTREE_ORDER> keys, int l, int h, int target) {
   while (l <= h) {
     int mid = l + (h - l) / 2;
 
@@ -40,7 +31,7 @@ int find_idx(int *keys, int l, int h, int target) {
 }
 
 // Inserts a key at the index idx in the node
-void insert_key_at(btree *&node, int key, int idx) {
+void insert_key_at(shared_ptr<btree> &node, int key, int idx) {
   int no_keys = node->num_keys;
 
   for (int i = no_keys - 1; i >= idx; i--) {
@@ -52,7 +43,7 @@ void insert_key_at(btree *&node, int key, int idx) {
 }
 
 // Inserts a child at the index
-void insert_child_at(btree *&node, btree *&child, int idx) {
+void insert_child_at(shared_ptr<btree> &node, shared_ptr<btree> &child, int idx) {
   int no_children = node->num_keys + 1;
 
   for (int i = no_children - 1; i >= idx; i--) {
@@ -63,7 +54,7 @@ void insert_child_at(btree *&node, btree *&child, int idx) {
 }
 
 // Move keys from the left node to the right node
-void move_keys(btree *left, btree *right, int start) {
+void move_keys(shared_ptr<btree> left, shared_ptr<btree> right, int start) {
   int idx = 0;
 
   for (int i = start; i < left->num_keys; i++) {
@@ -73,7 +64,7 @@ void move_keys(btree *left, btree *right, int start) {
 }
 
 // Move children from the left node to the right node
-void move_children(btree *left, btree *right, int start_idx,
+void move_children(shared_ptr<btree> left, shared_ptr<btree> right, int start_idx,
                    int total_children) {
 
   int idx = 0;
@@ -84,7 +75,7 @@ void move_children(btree *left, btree *right, int start_idx,
 }
 
 // Clear keys in a node
-void clear_keys(btree *node, int from_idx) {
+void clear_keys(shared_ptr<btree> node, int from_idx) {
   for (int i = from_idx; i < node->num_keys; i++) {
     node->keys[i] = 0;
   }
@@ -93,10 +84,10 @@ void clear_keys(btree *node, int from_idx) {
 }
 
 // split the leaf node
-void split_leaf(btree *&leaf, btree *&parent) {
+void split_leaf(shared_ptr<btree> &leaf, shared_ptr<btree> &parent) {
   // This means the leaf node is the root
   bool is_root = (parent == nullptr);
-  btree *left = leaf;
+  shared_ptr<btree> left = leaf;
 
   if (is_root) {
     parent = init();
@@ -104,7 +95,7 @@ void split_leaf(btree *&leaf, btree *&parent) {
     leaf = parent;
   }
 
-  btree *right = init();
+  shared_ptr<btree> right = init();
 
   int mid = (left->num_keys) / 2;
 
@@ -123,9 +114,9 @@ void split_leaf(btree *&leaf, btree *&parent) {
 }
 
 // split an internal node
-void split_internal(btree *&node, btree *&parent) {
+void split_internal(shared_ptr<btree> &node, shared_ptr<btree> &parent) {
   bool is_root = (parent == nullptr);
-  btree *left = node;
+  shared_ptr<btree> left = node;
 
   if (is_root) {
     parent = init();
@@ -133,7 +124,7 @@ void split_internal(btree *&node, btree *&parent) {
     node = parent;
   }
 
-  btree *right = init();
+  shared_ptr<btree> right = init();
   right->is_leaf = false;
 
   int mid = left->num_keys / 2;
@@ -159,7 +150,7 @@ void split_internal(btree *&node, btree *&parent) {
 }
 
 // Handles main recursive insert logic
-void insert_helper(btree *&node, int key, btree *&parent) {
+void insert_helper(shared_ptr<btree> &node, int key, shared_ptr<btree> &parent) {
 
   int pos_idx = find_idx(node->keys, 0, node->num_keys - 1, key);
   if (node->keys[pos_idx] == key) {
@@ -184,12 +175,12 @@ void insert_helper(btree *&node, int key, btree *&parent) {
   }
 }
 
-void insert(btree *&root, int key) {
+void insert(shared_ptr<btree> &root, int key) {
   if (root == NULL) {
     root = init();
   }
 
-  btree *tree_parent = nullptr;
+  shared_ptr<btree> tree_parent = nullptr;
 
   insert_helper(root, key, tree_parent);
 }
@@ -200,7 +191,7 @@ void remove(btree *&root, int key) {
   // TODO
 }
 
-btree *find(btree *&root, int key) {
+shared_ptr<btree> find(shared_ptr<btree> &root, int key) {
   int pos_idx = find_idx(root->keys, 0, root->num_keys - 1, key);
   if (root->keys[pos_idx] == key) {
     return root;
@@ -208,11 +199,11 @@ btree *find(btree *&root, int key) {
     return root;
   }
 
-  btree *child_node = find(root->children[pos_idx], key);
+  shared_ptr<btree> child_node = find(root->children[pos_idx], key);
   return child_node;
 }
 
-int count_nodes(btree *&root) {
+int count_nodes(shared_ptr<btree> &root) {
   if (root == nullptr) {
     return 0;
   }
@@ -226,7 +217,7 @@ int count_nodes(btree *&root) {
   return count;
 }
 
-int count_keys(btree *&root) {
+int count_keys(std::shared_ptr<btree> &root) {
   if (root == nullptr) {
     return 0;
   }

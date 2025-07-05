@@ -24,6 +24,7 @@
 // number of keys is one less than this value.
 #define BTREE_ORDER 5
 #define MAX_KEYS 4
+#define MIN_KEYS 2
 
 #define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl;
 #define LOG_ERROR(msg) std::cerr << "[ERROR] " << msg << std::endl;
@@ -44,14 +45,14 @@ struct btree {
   int num_keys;
 
   // keys is an array of values. valid indexes are in [0..num_keys)
-  std::array<int, BTREE_ORDER> keys;
+  array<int, BTREE_ORDER> keys;
 
   // is_leaf is true if this is a leaf, false otherwise
   bool is_leaf;
 
   // children is an array of pointers to b-tree subtrees. valid
   // indexes are in [0..num_keys].
-  std::array<std::shared_ptr<btree>, BTREE_ORDER+1> children;
+  array<shared_ptr<btree>, BTREE_ORDER+1> children;
 
   btree() : num_keys(0), is_leaf(true) {
     keys.fill(0);
@@ -66,7 +67,7 @@ struct btree {
 // -- the 'root' pointer should refer to the root of the
 //    tree. (the root may change when we insert or remove)
 // -- the btree pointed to by 'root' is valid.
-void insert(std::shared_ptr<btree> &root, int key);
+void insert(shared_ptr<btree> &root, int key);
 
 // remove deletes the given key from a b-tree rooted at 'root'. If the
 // key is not in the btree this should do nothing.
@@ -75,23 +76,23 @@ void insert(std::shared_ptr<btree> &root, int key);
 // -- the 'root' pointer should refer to the root of the
 //    tree. (the root may change when we insert or delete)
 // -- the btree pointed to by 'root' is valid.
-void remove(std::shared_ptr<btree> &root, int key);
+void remove(shared_ptr<btree> &root, int key);
 
 // find locates the node that either: (a) currently contains this key,
 // or (b) the node that would contain it if we were to try to insert
 // it.  Note that this always returns a non-null node.
-std::shared_ptr<btree> find(std::shared_ptr<btree> &root, int key);
+shared_ptr<btree> find(shared_ptr<btree> &root, int key);
 
 // count_nodes returns the number of nodes referenced by this
 // btree. If this node is NULL, count_nodes returns zero; if it is a
 // root, it returns 1; otherwise it returns 1 plus however many nodes
 // are accessable via any valid child links.
-int count_nodes(std::shared_ptr<btree> &root);
+int count_nodes(shared_ptr<btree> &root);
 
 // count_keys returns the total number of keys stored in this
 // btree. If the root node is null it returns zero; otherwise it
 // returns the number of keys in the root plus however many keys are
 // contained in valid child links.
-int count_keys(std::shared_ptr<btree> &root);
+int count_keys(shared_ptr<btree> &root);
 
 #endif

@@ -33,8 +33,8 @@ TEST_CASE("B-Tree: Sanity Check", "[sanity]") {
   REQUIRE(private_contains(small, 13));
   REQUIRE_FALSE(private_contains(small, 14));
 
-  shared_ptr<btree> broken = build_broken();    // invariant should fail
-  REQUIRE_FALSE(check_tree(broken)); // be sure we catch that
+  shared_ptr<btree> broken = build_broken(); // invariant should fail
+  REQUIRE_FALSE(check_tree(broken));         // be sure we catch that
 }
 
 TEST_CASE("B-Tree: Report number of nodes", "[count nodes]") {
@@ -223,7 +223,8 @@ TEST_CASE("B-Tree: Insert key into full leaf node", "[ins leaf full]") {
   // spots, then recompile and run to troubleshoot.
 }
 
-TEST_CASE("B-Tree: Remove not present key from empty tree", "[rm not present empty]") {
+TEST_CASE("B-Tree: Remove not present key from empty tree",
+          "[rm not present empty]") {
   shared_ptr<btree> semi = build_empty();
   remove(semi, 28); // should have no effect
   REQUIRE(check_tree(semi));
@@ -247,11 +248,16 @@ TEST_CASE("B-Tree: Remove not present key from leaf", "[rm not present leaf]") {
   // case
 }
 
-TEST_CASE("B-Tree: Remove key from leaf with full siblings", "[rm leaf sibs full]") {
+TEST_CASE("B-Tree: Remove key from leaf with full siblings",
+          "[rm leaf sibs full]") {
   shared_ptr<btree> semi = build_two_tier();
-  remove(semi, 27); // should cause a rotate right involving parent and sibling to left 
+  LOG_INFO("Root before removing 27")
+  print_tree(semi);
+  remove(semi, 27); // should cause a rotate right involving parent and sibling to left
+  LOG_INFO("Root after removing 27")
+  print_tree(semi);
   REQUIRE(check_tree(semi));
-
+  
   // height should remain at 1
   int height = 0;
   bool leaves_ok = check_height(semi, height);
@@ -262,17 +268,18 @@ TEST_CASE("B-Tree: Remove key from leaf with full siblings", "[rm leaf sibs full
   REQUIRE_FALSE(private_search_all(semi, 27));
 }
 
-TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings", "[rm leaf sibs mincap]") {
+TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings",
+          "[rm leaf sibs mincap]") {
   shared_ptr<btree> thrice = build_thin_three_tier();
   int height = 0;
   bool leaves_ok = check_height(thrice, height);
   REQUIRE(height == 2); // just a sanity check
   REQUIRE(leaves_ok);
-  LOG_INFO("Thrice tree before removing key")
+  LOG_INFO("Thrice tree before removing key " << 1)
   print_tree(thrice);
-  
-  LOG_INFO("Thrice tree after removing the key")
+
   remove(thrice, 1); // rm 1, smallest value. should result in shorter tree
+  LOG_INFO("Thrice tree after removing the key " << 1)
 
   print_tree(thrice);
   leaves_ok = check_height(thrice, height);
@@ -283,7 +290,14 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings", "[rm lea
 
   // reset, do it again but remove 16. this one is on the inside.
   thrice = build_thin_three_tier();
+  LOG_INFO("Thrice tree before removing key " << 16)
+  print_tree(thrice);
+
   remove(thrice, 16);
+
+  LOG_INFO("Thrice tree after removing key " << 16)
+  print_tree(thrice);
+  
   leaves_ok = check_height(thrice, height);
   REQUIRE(height == 1);
   REQUIRE(leaves_ok);
@@ -292,7 +306,14 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings", "[rm lea
 
   // again, remove 26, this is the largest key in the tree
   thrice = build_thin_three_tier();
+  LOG_INFO("Thrice tree before removing key " << 26)
+  print_tree(thrice);
+
   remove(thrice, 26);
+
+  LOG_INFO("Thrice tree after removing key " << 26)
+  print_tree(thrice);
+
   leaves_ok = check_height(thrice, height);
   REQUIRE(height == 1);
   REQUIRE(leaves_ok);
@@ -300,25 +321,25 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings", "[rm lea
   REQUIRE_FALSE(private_search_all(thrice, 26));
 }
 
-// TEST_CASE("B-Tree: Remove key from internal node with at-min-capacity siblings", "[rm intnl sibs mincap]") {
-//   shared_ptr<btree> thrice = build_thin_three_tier();
-//   int height = 0;
-//   bool leaves_ok = check_height(thrice, height);
-//   REQUIRE(height == 2); // just a sanity check
-//   REQUIRE(leaves_ok);
+TEST_CASE("B-Tree: Remove key from internal node with at-min-capacity siblings", "[rm intnl sibs mincap]") {
+  shared_ptr<btree> thrice = build_thin_three_tier();
+  int height = 0;
+  bool leaves_ok = check_height(thrice, height);
+  REQUIRE(height == 2); // just a sanity check
+  REQUIRE(leaves_ok);
 
-//   remove(thrice, 4); // rm 4, a key in an internal node.
-//   leaves_ok = check_height(thrice, height);
-//   REQUIRE(height == 1); // should have shrunk tree by one
-//   REQUIRE(leaves_ok);
-//   REQUIRE(check_tree(thrice));
-//   REQUIRE_FALSE(private_search_all(thrice, 4));
+  remove(thrice, 4); // rm 4, a key in an internal node.
+  leaves_ok = check_height(thrice, height);
+  REQUIRE(height == 1); // should have shrunk tree by one
+  REQUIRE(leaves_ok);
+  REQUIRE(check_tree(thrice));
+  REQUIRE_FALSE(private_search_all(thrice, 4));
 
-//   thrice = build_thin_three_tier();
-//   remove(thrice, 24); // rm 24, a key in an internal node.
-//   leaves_ok = check_height(thrice, height);
-//   REQUIRE(height == 1); // should have shrunk tree by one
-//   REQUIRE(leaves_ok);
-//   REQUIRE(check_tree(thrice));
-//   REQUIRE_FALSE(private_search_all(thrice, 24));
-// }
+  thrice = build_thin_three_tier();
+  remove(thrice, 24); // rm 24, a key in an internal node.
+  leaves_ok = check_height(thrice, height);
+  REQUIRE(height == 1); // should have shrunk tree by one
+  REQUIRE(leaves_ok);
+  REQUIRE(check_tree(thrice));
+  REQUIRE_FALSE(private_search_all(thrice, 24));
+}

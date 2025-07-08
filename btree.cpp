@@ -4,8 +4,10 @@
 #include "catch.hpp"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <locale>
 #include <memory>
 
 using namespace std;
@@ -232,7 +234,70 @@ int get_child_pos(shared_ptr<btree> child, shared_ptr<btree> node) {
   return -1;
 }
 
-void merge_leaf_nodes(shared_ptr<btree> from_node, shared_ptr<btree> to_node) {
+int get_valid_child_count(shared_ptr<btree> node) {
+  int count = 0, id = 0;
+
+  while (node->children[id++] != nullptr) {
+    count++;
+  }
+
+  return count;
+}
+
+// Finds and returns the inorder predecessor key by traversing
+// to the rightmost node in the left subtree.
+// Returns -1 if the node has fewer than MIN_KEYS keys.
+int get_inorder_pred_key(shared_ptr<btree> node) {
+  shared_ptr<btree> temp = node;
+
+  while (temp && temp->children[temp->num_keys] != nullptr) {
+    temp = temp->children[temp->num_keys];
+  }
+
+  if (!temp || temp->num_keys < MIN_KEYS)
+    return -1;
+
+  return temp->keys[temp->num_keys - 1];
+}
+
+shared_ptr<btree> get_inorder_pred_node(shared_ptr<btree> node) {
+  shared_ptr<btree> temp = node;
+
+  while (temp && temp->children[temp->num_keys] != nullptr) {
+    temp = temp->children[temp->num_keys];
+  }
+
+  return temp;
+}
+
+// Finds and returns the inorder successor key by traversing
+// to the leftmost node in the right subtree.
+// Returns -1 if the node has fewer than MIN_KEYS keys.
+int get_inorder_suc_key(shared_ptr<btree> node) {
+  shared_ptr<btree> temp = node;
+
+  while (temp && temp->children[0] != nullptr) {
+    temp = temp->children[0];
+  }
+
+  if (!temp || temp->num_keys < MIN_KEYS)
+    return -1;
+
+  return temp->keys[0];
+}
+
+shared_ptr<btree> get_inorder_suc_node(shared_ptr<btree> node) {
+  shared_ptr<btree> temp = node;
+
+  while (temp && temp->children[0] != nullptr) {
+    temp = temp->children[0];
+  }
+
+  return temp;
+}
+
+void merge_leaf_nodes(shared_ptr<btree> &from_node,
+                      shared_ptr<btree> &to_node) {
   assert(from_node->num_keys >= 1);
   assert(to_node->num_keys >= 1);
 
@@ -245,8 +310,130 @@ void merge_leaf_nodes(shared_ptr<btree> from_node, shared_ptr<btree> to_node) {
       insert_key_at(to_node, from_node->keys[i], to_node->num_keys);
     }
   }
+}
 
-  assert(to_node->num_keys <= MAX_KEYS);
+void merge_internal_nodes(shared_ptr<btree> &from_node,
+                          shared_ptr<btree> &to_node) {
+
+  if (from_node->keys[0] < to_node->keys[0]) {
+
+    for (int i = from_node->num_keys - 1; i >= 0; i--) {
+      insert_key_at(to_node, from_node->keys[i], 0);
+    }
+
+    int idx = get_valid_child_count(to_node);
+    for (int i = idx; i >= 0; i--) {
+      insert_child_at(to_node, from_node->children[i], 0);
+    }
+  } else {
+    int idx = get_valid_child_count(to_node), i = 0;
+    while (i < BTREE_ORDER && from_node->children[i] != nullptr) {
+      to_node->children[idx++] = from_node->children[i++];
+    }
+
+    for (int i = 0; i < from_node->num_keys; i++) {
+      insert_key_at(to_node, from_node->keys[i], to_node->num_keys);
+    }
+  }
+}
+
+void balance_tree(shared_ptr<btree> &node, shared_ptr<btree> &parent) {
+  if (node == nullptr || parent == nullptr)
+    return;
+
+  // First balance all the children
+  for (int i = 0; i < node->num_keys + 1; i++) {
+    if (node->children[i] != nullptr) {
+      balance_tree(node->children[i], node);
+    }
+  }
+
+  if (node == nullptr)
+    return;
+
+  // All the children are balanced
+  if (node->num_keys < MIN_KEYS) {
+    int child_pos = get_child_pos(node, parent);
+    shared_ptr<btree> left_sib = nullptr;
+    if (child_pos - 1 >= 0) {
+      left_sib = parent->children[child_pos - 1];
+    }
+
+    shared_ptr<btree> right_sib = nullptr;
+    if (child_pos + 1 < BTREE_ORDER + 1) {
+      right_sib = parent->children[child_pos + 1];
+    }
+
+    if (left_sib != nullptr && left_sib->num_keys > MIN_KEYS) {
+      int in_ord_pred = left_sib->keys[left_sib->num_keys - 1];
+      remove_key_at(left_sib, left_sib->num_keys - 1);
+
+      int parent_key = parent->keys[child_pos - 1];
+      parent->keys[child_pos] = in_ord_pred;
+
+      int insert_pos = find_idx(node->keys, 0, node->num_keys - 1, parent_key);
+      insert_key_at(node, parent_key, insert_pos);
+
+      if (!node->is_leaf) {
+        shared_ptr<btree> in_ord_pred_child =
+            left_sib->children[left_sib->num_keys];
+        remove_child_at(left_sib, left_sib->num_keys);
+
+        insert_child_at(node, in_ord_pred_child, insert_pos);
+      }
+    } else if (right_sib != nullptr && right_sib->num_keys > MIN_KEYS) {
+      int in_ord_suc = right_sib->keys[0];
+      remove_key_at(right_sib, 0);
+
+      int parent_key = parent->keys[child_pos];
+      parent->keys[child_pos] = in_ord_suc;
+
+      int insert_pos = find_idx(node->keys, 0, node->num_keys - 1, parent_key);
+      insert_key_at(node, parent_key, insert_pos);
+
+      if (!node->is_leaf) {
+        shared_ptr<btree> in_ord_suc_child = left_sib->children[0];
+        remove_child_at(right_sib, 0);
+
+        insert_child_at(node, in_ord_suc_child, insert_pos);
+      }
+
+    } else {
+
+      if (left_sib != nullptr) {
+        int left_sib_idx = child_pos - 1;
+        int root_key = parent->keys[left_sib_idx];
+
+        insert_key_at(left_sib, root_key, left_sib->num_keys);
+
+        if (node->is_leaf) {
+          merge_leaf_nodes(left_sib, node);
+
+        } else {
+          merge_internal_nodes(left_sib, node);
+        }
+
+        remove_key_at(parent, left_sib_idx);
+        remove_child_at(parent, left_sib_idx);
+
+      } else if (right_sib != nullptr) {
+
+        int right_sib_idx = child_pos + 1;
+
+        int root_key = parent->keys[child_pos];
+        insert_key_at(right_sib, root_key, 0);
+
+        if (node->is_leaf) {
+          merge_leaf_nodes(right_sib, node);
+        } else {
+          merge_internal_nodes(right_sib, node);
+        }
+
+        remove_key_at(parent, child_pos);
+        remove_child_at(parent, right_sib_idx);
+      }
+    }
+  }
 }
 
 void remove_helper(shared_ptr<btree> &node, int key,
@@ -263,6 +450,7 @@ void remove_helper(shared_ptr<btree> &node, int key,
         remove_key_at(node, pos_idx);
         return;
       } else if (node->num_keys <= MIN_KEYS) {
+
         int child_pos = get_child_pos(node, parent);
 
         shared_ptr<btree> left_sib = nullptr;
@@ -280,7 +468,7 @@ void remove_helper(shared_ptr<btree> &node, int key,
           remove_key_at(left_sib, left_sib->num_keys - 1);
 
           int parent_key = parent->keys[child_pos - 1];
-          parent->keys[child_pos] = in_ord_pred;
+          parent->keys[child_pos - 1] = in_ord_pred;
 
           remove_key_at(node, pos_idx);
 
@@ -309,12 +497,14 @@ void remove_helper(shared_ptr<btree> &node, int key,
             int root_key = parent->keys[left_sib_idx];
             insert_key_at(left_sib, root_key, left_sib->num_keys);
 
+            merge_leaf_nodes(left_sib, node);
+
             remove_key_at(parent, left_sib_idx);
             remove_child_at(parent, left_sib_idx);
 
-            merge_leaf_nodes(left_sib, node);
+            print_tree(parent);
 
-            if (parent->num_keys == 0) {
+            if (parent != nullptr && parent->num_keys == 0) {
               parent = node;
             }
           } else if (right_sib != nullptr) {
@@ -324,12 +514,12 @@ void remove_helper(shared_ptr<btree> &node, int key,
 
             insert_key_at(right_sib, root_key, 0);
 
+            merge_leaf_nodes(right_sib, node);
+
             remove_key_at(parent, child_pos);
             remove_child_at(parent, right_sib_idx);
 
-            merge_leaf_nodes(right_sib, node);
-
-            if (parent->num_keys == 0) {
+            if (parent != nullptr && parent->num_keys == 0) {
               parent = node;
             }
           }
@@ -337,14 +527,44 @@ void remove_helper(shared_ptr<btree> &node, int key,
       }
     } else {
       // key to delete is in an internal node
+      shared_ptr<btree> left_node = node->children[pos_idx];
+      shared_ptr<btree> right_node = node->children[pos_idx + 1];
+
+      if (left_node->num_keys > MIN_KEYS) {
+        int in_ord_pred_key = get_inorder_pred_key(left_node);
+        shared_ptr<btree> in_ord_pred_node = get_inorder_pred_node(left_node);
+
+        node->keys[pos_idx] = in_ord_pred_key;
+        remove_helper(left_node, in_ord_pred_key, node);
+      } else if (right_node->num_keys > MIN_KEYS) {
+        int in_ord_suc_key = get_inorder_suc_key(right_node);
+        shared_ptr<btree> in_ord_suc_node = get_inorder_suc_node(right_node);
+
+        node->keys[pos_idx] = in_ord_suc_key;
+        remove_helper(right_node, in_ord_suc_key, node);
+      } else {
+
+        insert_key_at(left_node, key, left_node->num_keys);
+
+        if (left_node->is_leaf) {
+          merge_leaf_nodes(right_node, left_node);
+        } else {
+          merge_internal_nodes(right_node, left_node);
+        }
+
+        remove_key_at(node, pos_idx);
+        remove_child_at(node, pos_idx + 1);
+
+        remove_helper(left_node, key, node);
+      }
     }
   } else {
     remove_helper(node->children[pos_idx], key, node);
   }
 
-  //After visting the children
-  //Check if the node has less than min keys
-  
+  if (parent != nullptr && node != nullptr && node->num_keys < MIN_KEYS) {
+    balance_tree(node, parent);
+  }
 }
 
 void remove(shared_ptr<btree> &root, int key) {
@@ -357,6 +577,12 @@ void remove(shared_ptr<btree> &root, int key) {
 
   shared_ptr<btree> parent = nullptr;
   remove_helper(root, key, parent);
+
+  if (root->num_keys == 0) {
+    root = root->children[0];
+  }
+
+  print_tree(root);
 }
 
 shared_ptr<btree> find(shared_ptr<btree> &root, int key) {
@@ -399,16 +625,3 @@ int count_keys(std::shared_ptr<btree> &root) {
 
   return count;
 }
-
-// int main(int argc, char **argv) {
-
-//   shared_ptr<btree> root = nullptr;
-
-//   insert(root,  10);
-
-//   for(int i = 20;i <= 35;i++) {
-//     insert(root,  i);
-//   }
-
-//   print_tree(root);
-// }

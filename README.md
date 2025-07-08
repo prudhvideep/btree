@@ -1,6 +1,6 @@
 # B-Tree Implementation & Testing Playground
 
-This repository is a hands-on environment for learning, implementing, and testing **B-Trees**. A foundational data structure used in storage systems, databases, and file systems.
+This repository is a hands-on environment for learning, implementing, and testing **B-Trees**. A foundational data structure used in storage systems, databases, and file systems. 
 
 ## Purpose
 
@@ -22,4 +22,7 @@ B-Trees are core to efficient indexing and data retrieval in large-scale systems
 To compile and run all unit tests, simply run:
 
 ```bash
-make btree_test
+make clean
+make
+./btree_test
+```

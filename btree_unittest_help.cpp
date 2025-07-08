@@ -31,7 +31,8 @@ shared_ptr<btree> build_broken() {
   int vals3[] = {13, 17};
   shared_ptr<btree> mid = build_node(2, vals3);
   int vals4[] = {28};
-  shared_ptr<btree> right = build_node(1, vals4); // right node is under capacity!
+  shared_ptr<btree> right =
+      build_node(1, vals4); // right node is under capacity!
   root->is_leaf = false;
   root->children[0] = left;
   root->children[1] = mid;
@@ -198,6 +199,7 @@ string get_id_for_dot(shared_ptr<btree> &node) {
 }
 
 string get_label_for_dot(shared_ptr<btree> &node) {
+
   stringstream ss;
   for (int i = 0; i < node->num_keys; i++) {
     ss << "" << node->keys[i];
@@ -257,7 +259,8 @@ bool check_tree(shared_ptr<btree> &root) {
   return ret;
 }
 
-void check_invariants(shared_ptr<invariants> &invars, shared_ptr<btree> &node, bool is_root) {
+void check_invariants(shared_ptr<invariants> &invars, shared_ptr<btree> &node,
+                      bool is_root) {
 
   if (is_root && node == NULL) {
     invars->ascending = true;
@@ -323,7 +326,8 @@ void check_invariants(shared_ptr<invariants> &invars, shared_ptr<btree> &node, b
   }
 }
 
-void check_leaf_height(shared_ptr<btree> &node, vector<int> &depth, int current_depth) {
+void check_leaf_height(shared_ptr<btree> &node, vector<int> &depth,
+                       int current_depth) {
   if (node->is_leaf) {
     depth.push_back(current_depth);
   } else {
@@ -372,7 +376,8 @@ void check_size(shared_ptr<btree> &node, int &result_nodes, int &result_keys,
   }
 }
 
-bool check_node_key_range(shared_ptr<btree> &node, int low, int high, bool recurse) {
+bool check_node_key_range(shared_ptr<btree> &node, int low, int high,
+                          bool recurse) {
 
   for (int i = 0; i < node->num_keys; i++) {
     if (node->keys[i] <= low ||  // key is out of low range

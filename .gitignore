@@ -34,6 +34,7 @@
 .vscode
 
 images
-grade.py
+test.py
 points.json
+btree
 btree_test

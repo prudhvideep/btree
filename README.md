@@ -26,3 +26,6 @@ make clean
 make
 ./btree_test
 ```
+
+## Pratice 
+You can check out the test branch and implement the umimplemented functions and run the tests to check your implementaion.

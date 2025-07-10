@@ -251,11 +251,7 @@ TEST_CASE("B-Tree: Remove not present key from leaf", "[rm not present leaf]") {
 TEST_CASE("B-Tree: Remove key from leaf with full siblings",
           "[rm leaf sibs full]") {
   shared_ptr<btree> semi = build_two_tier();
-  LOG_INFO("Root before removing 27")
-  print_tree(semi);
   remove(semi, 27); // should cause a rotate right involving parent and sibling to left
-  LOG_INFO("Root after removing 27")
-  print_tree(semi);
   REQUIRE(check_tree(semi));
   
   // height should remain at 1
@@ -275,13 +271,9 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings",
   bool leaves_ok = check_height(thrice, height);
   REQUIRE(height == 2); // just a sanity check
   REQUIRE(leaves_ok);
-  LOG_INFO("Thrice tree before removing key " << 1)
-  print_tree(thrice);
 
   remove(thrice, 1); // rm 1, smallest value. should result in shorter tree
-  LOG_INFO("Thrice tree after removing the key " << 1)
 
-  print_tree(thrice);
   leaves_ok = check_height(thrice, height);
   REQUIRE(height == 1);
   REQUIRE(leaves_ok);
@@ -290,13 +282,8 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings",
 
   // reset, do it again but remove 16. this one is on the inside.
   thrice = build_thin_three_tier();
-  LOG_INFO("Thrice tree before removing key " << 16)
-  print_tree(thrice);
 
   remove(thrice, 16);
-
-  LOG_INFO("Thrice tree after removing key " << 16)
-  print_tree(thrice);
   
   leaves_ok = check_height(thrice, height);
   REQUIRE(height == 1);
@@ -306,13 +293,7 @@ TEST_CASE("B-Tree: Remove key from leaf with at-min-capactiy siblings",
 
   // again, remove 26, this is the largest key in the tree
   thrice = build_thin_three_tier();
-  LOG_INFO("Thrice tree before removing key " << 26)
-  print_tree(thrice);
-
   remove(thrice, 26);
-
-  LOG_INFO("Thrice tree after removing key " << 26)
-  print_tree(thrice);
 
   leaves_ok = check_height(thrice, height);
   REQUIRE(height == 1);

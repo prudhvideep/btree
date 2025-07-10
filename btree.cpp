@@ -18,22 +18,6 @@ shared_ptr<btree> init() {
   return node;
 }
 
-// Returns the index where a key can be inserted in a node
-int find_idx(array<int, BTREE_ORDER> keys, int l, int h, int target) {
-  while (l <= h) {
-    int mid = l + (h - l) / 2;
-
-    if (keys[mid] > target) {
-      h = mid - 1;
-    } else if (keys[mid] < target) {
-      l = mid + 1;
-    } else {
-      return mid;
-    }
-  }
-  return l;
-}
-
 // Inserts a key at the index idx in the node
 void insert_key_at(shared_ptr<btree> &node, int key, int idx) {
   int no_keys = node->num_keys;
@@ -44,6 +28,15 @@ void insert_key_at(shared_ptr<btree> &node, int key, int idx) {
 
   node->keys[idx] = key;
   node->num_keys++;
+}
+
+//Remove a key at the index idx from the node
+void remove_key_at(shared_ptr<btree> &node, int idx) {
+  for (int i = idx + 1; i < node->num_keys; i++) {
+    node->keys[i - 1] = node->keys[i];
+  }
+
+  node->num_keys--;
 }
 
 // Inserts a child at the index
@@ -88,6 +81,52 @@ void clear_keys(shared_ptr<btree> node, int from_idx) {
   }
 
   node->num_keys = from_idx;
+}
+
+//Remove a child at idx from the node
+void remove_child_at(shared_ptr<btree> &node, int idx) {
+  for (int i = idx + 1; i < MAX_KEYS + 1; i++) {
+    node->children[i - 1] = node->children[i];
+  }
+}
+
+//Get the positon of a child node in the node
+int get_child_pos(shared_ptr<btree> child, shared_ptr<btree> node) {
+  for (int i = 0; i < node->num_keys + 1; i++) {
+    if (node->children[i] == child) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+//Get all the not null children
+//Useful for merging where we cant rely on node count
+int get_valid_child_count(shared_ptr<btree> node) {
+  int count = 0, id = 0;
+
+  while (node->children[id++] != nullptr) {
+    count++;
+  }
+
+  return count;
+}
+
+// Returns the index where a key can be inserted in a node
+int find_idx(array<int, BTREE_ORDER> keys, int l, int h, int target) {
+  while (l <= h) {
+    int mid = l + (h - l) / 2;
+
+    if (keys[mid] > target) {
+      h = mid - 1;
+    } else if (keys[mid] < target) {
+      l = mid + 1;
+    } else {
+      return mid;
+    }
+  }
+  return l;
 }
 
 // split the leaf node
@@ -188,7 +227,6 @@ void insert(shared_ptr<btree> &root, int key) {
   }
 
   shared_ptr<btree> tree_parent = nullptr;
-
   insert_helper(root, key, tree_parent);
 }
 
@@ -210,41 +248,7 @@ bool key_exists(shared_ptr<btree> root, int key) {
   return false;
 }
 
-void remove_key_at(shared_ptr<btree> &node, int idx) {
-  for (int i = idx + 1; i < node->num_keys; i++) {
-    node->keys[i - 1] = node->keys[i];
-  }
-
-  node->num_keys--;
-}
-
-void remove_child_at(shared_ptr<btree> &node, int idx) {
-  for (int i = idx + 1; i < MAX_KEYS + 1; i++) {
-    node->children[i - 1] = node->children[i];
-  }
-}
-
-int get_child_pos(shared_ptr<btree> child, shared_ptr<btree> node) {
-  for (int i = 0; i < node->num_keys + 1; i++) {
-    if (node->children[i] == child) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-int get_valid_child_count(shared_ptr<btree> node) {
-  int count = 0, id = 0;
-
-  while (node->children[id++] != nullptr) {
-    count++;
-  }
-
-  return count;
-}
-
-// Finds and returns the inorder predecessor key by traversing
+// Find and return the inorder predecessor key by traversing
 // to the rightmost node in the left subtree.
 // Returns -1 if the node has fewer than MIN_KEYS keys.
 int get_inorder_pred_key(shared_ptr<btree> node) {
